@@ -1,3 +1,3 @@
 
 if __name__ == "__main__":
-    print("python-example.__main__")
+    print("pyexample.__main__")
