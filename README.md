@@ -1,2 +1,2 @@
-# python-example
+# pyexample
 Just an example repo
