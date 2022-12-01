@@ -1,55 +1,129 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Note: To use the 'upload' functionality of this file, you must:
+#   $ pipenv install twine --dev
+
+import io
 import os
-import site
 import sys
-from distutils.sysconfig import get_python_lib
+from shutil import rmtree
 
-from setuptools import setup
+from setuptools import find_packages, setup, Command
 
-# Allow editable install into user site directory.
-# See https://github.com/pypa/pip/issues/7953.
-site.ENABLE_USER_SITE = "--user" in sys.argv[1:]
+# Package meta-data.
+NAME = 'pyexample'
+DESCRIPTION = 'Example python module'
+URL = 'https://github.com/OAustlid/pyexample'
+EMAIL = 'OAustlid@gmail.com'
+AUTHOR = 'Olve A. Austlid'
+REQUIRES_PYTHON = '>=3.8.0'
+VERSION = '0.0.1'
 
-# Warn if we are installing over top of an existing installation. This can
-# cause issues where files that were deleted from a more recent Django are
-# still present in site-packages. See #18115.
-overlay_warning = False
-if "install" in sys.argv:
-    lib_paths = [get_python_lib()]
-    if lib_paths[0].startswith("/usr/lib/"):
-        # We have to try also with an explicit prefix of /usr/local in order to
-        # catch Debian's custom user site-packages directory.
-        lib_paths.append(get_python_lib(prefix="/usr/local"))
-    for lib_path in lib_paths:
-        existing_path = os.path.abspath(os.path.join(lib_path, "pyexample"))
-        if os.path.exists(existing_path):
-            # We note the need for the warning here, but present it after the
-            # command is run, so it's more likely to be seen.
-            overlay_warning = True
-            break
+# What packages are required for this module to be executed?
+REQUIRED = [
+    # 'requests', 'maya', 'records',
+]
+
+# What packages are optional?
+EXTRAS = {
+    # 'fancy feature': ['django'],
+}
+
+# The rest you shouldn't have to touch too much :)
+# ------------------------------------------------
+# Except, perhaps the License and Trove Classifiers!
+# If you do change the License, remember to change the Trove Classifier for that!
+
+here = os.path.abspath(os.path.dirname(__file__))
+
+# Import the README and use it as the long-description.
+# Note: this will only work if 'README.md' is present in your MANIFEST.in file!
+try:
+    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+        long_description = '\n' + f.read()
+except FileNotFoundError:
+    long_description = DESCRIPTION
+
+# Load the package's __version__.py module as a dictionary.
+about = {}
+if not VERSION:
+    project_slug = NAME.lower().replace("-", "_").replace(" ", "_")
+    with open(os.path.join(here, project_slug, '__version__.py')) as f:
+        exec(f.read(), about)
+else:
+    about['__version__'] = VERSION
 
 
-setup()
+class UploadCommand(Command):
+    """Support setup.py upload."""
+
+    description = 'Build and publish the package.'
+    user_options = []
+
+    @staticmethod
+    def status(s):
+        """Prints things in bold."""
+        print('\033[1m{0}\033[0m'.format(s))
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        try:
+            self.status('Removing previous builds…')
+            rmtree(os.path.join(here, 'dist'))
+        except OSError:
+            pass
+
+        self.status('Building Source and Wheel (universal) distribution…')
+        os.system('{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
+
+        self.status('Uploading the package to PyPI via Twine…')
+        os.system('twine upload dist/*')
+
+        self.status('Pushing git tags…')
+        os.system('git tag v{0}'.format(about['__version__']))
+        os.system('git push --tags')
+
+        sys.exit()
 
 
-if overlay_warning:
-    sys.stderr.write(
-        """
+# Where the magic happens:
+setup(
+    name=NAME,
+    version=about['__version__'],
+    description=DESCRIPTION,
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    author=AUTHOR,
+    author_email=EMAIL,
+    python_requires=REQUIRES_PYTHON,
+    url=URL,
+    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+    # If your package is a single module, use this instead of 'packages':
+    # py_modules=['mypackage'],
 
-========
-WARNING!
-========
-
-You have just installed python-example over top of an existing
-installation, without removing it first. Because of this,
-your install may now include extraneous files from a
-previous version that have since been removed from
-python-example. This is known to cause a variety of problems. You
-should manually remove the
-
-%(existing_path)s
-
-directory and re-install python-example.
-
-"""
-        % {"existing_path": existing_path}
-    )
+    # entry_points={
+    #     'console_scripts': ['mycli=mymodule:cli'],
+    # },
+    install_requires=REQUIRED,
+    extras_require=EXTRAS,
+    include_package_data=True,
+    license='MIT',
+    classifiers=[
+        # Trove classifiers
+        # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8',
+    ],
+    # $ setup.py publish support.
+    cmdclass={
+        'upload': UploadCommand,
+    },
+)
